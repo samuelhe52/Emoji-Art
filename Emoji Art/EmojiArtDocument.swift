@@ -8,7 +8,7 @@
 import SwiftUI
 
 class EmojiArtDocument: ObservableObject {
-    private var emojiArt = EmojiArt()
+    @Published private var emojiArt = EmojiArt()
     
     var emojis: [Emoji] { emojiArt.emojis }
     var background: URL? { emojiArt.background }
@@ -18,8 +18,8 @@ class EmojiArtDocument: ObservableObject {
         emojiArt.background = url
     }
     
-    func addEmoji(_ emoji: String, at position: Emoji.Position, size: CGFloat) {
-        emojiArt.addEmoji(emoji, at: position, size: Int(size))
+    func addEmoji(_ emoji: String, size: CGFloat, at position: Emoji.Position) {
+        emojiArt.addEmoji(emoji, size: Int(size), at: position)
     }
 
 }
@@ -31,8 +31,21 @@ extension Emoji {
 }
 
 extension Emoji.Position {
+    /// - returns: The corresponding `CGPoint` in SwiftUI's default coordinate system.
     func `in`(_ geometry: GeometryProxy) -> CGPoint {
         let center = geometry.frame(in: .local).center
+        // We use minus sign for y coordinate to make this a Cartesian coordinate system.
         return CGPoint(x: center.x + CGFloat(x), y: center.y - CGFloat(y))
+    }
+    
+    /// Initializes an instance by calculating its position relative to the center of the given `GeometryProxy`.
+    ///
+    /// - parameters:
+    ///   - location: A `CGPoint` representing the location in the `GeometryProxy`'s coordinate space.
+    ///   - geometry: A `GeometryProxy` object that provides access to the frame of the view.
+    init(at location: CGPoint, in geometry: GeometryProxy) {
+        let center = geometry.frame(in: .local).center
+        self.init(x: Int(location.x - center.x),
+                  y: Int(-(location.y - center.y)))
     }
 }

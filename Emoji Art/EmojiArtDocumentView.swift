@@ -18,7 +18,7 @@ struct EmojiArtDocumentView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            Color.yellow
+            documentBody
             ScrollingEmojis(emojis)
                 .font(.system(size: Constants.paletteEmojiSize))
                 .padding(.horizontal)
@@ -37,7 +37,32 @@ struct EmojiArtDocumentView: View {
                         .position(emoji.position.in(geometry))
                 }
             }
+            .dropDestination(for: Sturldata.self) { sturldatas, location in
+                return drop(sturldatas, at: location, in: geometry)
+            }
         }
+    }
+    
+    private func drop(_ sturldatas: [Sturldata],
+                      at location: CGPoint,
+                      in geometry: GeometryProxy) -> Bool {
+        for sturldata in sturldatas {
+            switch sturldata {
+            case .url(let url):
+                document.setBackground(url)
+                return true
+            case .string(let string):
+                document.addEmoji(
+                    string,
+                    size: Constants.paletteEmojiSize,
+                    at: .init(at: location, in: geometry)
+                )
+                return true
+            default:
+                break
+            }
+        }
+        return false
     }
 }
 
@@ -54,9 +79,10 @@ struct ScrollingEmojis: View {
             HStack {
                 ForEach(emojis, id: \.self) { emoji in
                     Text(emoji)
+                        .draggable(emoji)
                 }
             }
-        }.scrollIndicators(.hidden)
+        }.scrollIndicators(.never)
     }
 }
 
