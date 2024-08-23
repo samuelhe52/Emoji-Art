@@ -31,7 +31,7 @@ struct Emoji: Identifiable {
     var position: Position
     var id: Int
     
-    /// - parameters:
+    /// - Parameters:
     ///     - string: An emoji as a `String` instance.
     ///     - size: The conceptual size of the emoji.
     ///     - position: The `Position` for the emoji on screen, in Cartesian coordinate system.

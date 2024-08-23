@@ -19,7 +19,7 @@ enum Sturldata: Transferable {
     /// If the URL contains image data in a `data` scheme, this initializer converts the data into a `.data` case.
     /// Otherwise, it extracts the image URL (if embedded within the query parameters) and initializes with the `.url` case.
     ///
-    /// - parameter url: The `URL` to initialize from.
+    /// - Parameter url: The `URL` to initialize from.
     init(url: URL) {
         if let imageData = url.dataSchemeImageData {
             self = .data(imageData)
@@ -33,7 +33,7 @@ enum Sturldata: Transferable {
     /// If the string resembles a URL (starts with "http"), this initializer attempts to treat it as a URL and initializes with the `.url` case.
     /// Otherwise, it initializes with the `.string` case.
     ///
-    /// - parameter string: The `String` to initialize from.
+    /// - Parameter string: The `String` to initialize from.
     init(string: String) {
         // if the string looks like a URL, we're treat it like one
         if string.hasPrefix("http"), let url = URL(string: string) {
@@ -58,7 +58,7 @@ extension URL {
     /// typically under a parameter like `imgurl`. This property searches
     /// the query items for the first valid URL and returns it if found.
     ///
-    /// - returns: The first embedded URL if it exists, otherwise returns `self`.
+    /// - Returns: The first embedded URL if it exists, otherwise returns `self`.
     ///
     /// Example:
     /// ```swift
