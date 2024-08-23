@@ -59,7 +59,7 @@ struct AnimatedActionButton: View {
     
     var body: some View {
         Button(role: role) {
-            withAnimation {
+            withAnimation(.easeInOut(duration: 0.2)) {
                 action()
             }
         } label: {
