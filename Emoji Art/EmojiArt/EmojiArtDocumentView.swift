@@ -49,19 +49,26 @@ struct EmojiArtDocumentView: View {
             }
             .position(Emoji.Position.zero.in(geometry))
         ForEach(document.emojis) { emoji in
-            Text(emoji.string)
-                .onTapGesture {
-                    if isSelected(emoji) {
-                        selectedEmojiIDs.remove(emoji.id)
-                    } else {
-                        selectedEmojiIDs.insert(emoji.id)
-                    }
-                }
-                .border(isSelected(emoji) ? Color.red : Color.clear)
-                .font(emoji.font)
-                .scaleEffect(isSelected(emoji) ? emojiGestureZoom : 1)
-                .position(emoji.position.in(geometry))
+            buildEmoji(emoji, in: geometry)
         }
+    }
+    
+    private func buildEmoji(_ emoji: Emoji, in geometry: GeometryProxy) -> some View {
+        Text(emoji.string)
+            .onTapGesture {
+                if isSelected(emoji) {
+                    selectedEmojiIDs.remove(emoji.id)
+                } else {
+                    selectedEmojiIDs.insert(emoji.id)
+                }
+            }
+            .border(isSelected(emoji) ? Color.red : Color.clear)
+            .font(emoji.font)
+            .scaleEffect(isSelected(emoji) ? emojiGestureZoom : 1)
+            .position(emoji.position.in(geometry))
+            .offset(isSelected(emoji) ? emojiGesturePan: .zero)
+            // Note: Our .gesture() modifier must be placed after any position-shifting modifiers.
+            .gesture(isSelected(emoji) ? emojiPanGesture : nil)
     }
     
     private func isSelected(_ emoji: Emoji) -> Bool {
@@ -78,6 +85,7 @@ struct EmojiArtDocumentView: View {
     @GestureState private var gestureZoom: CGFloat = 1
     @GestureState private var emojiGestureZoom: CGFloat = 1
     @GestureState private var gesturePan: CGOffset = .zero
+    @GestureState private var emojiGesturePan: CGOffset = .zero
     
     private var zoomGesture: some Gesture {
         MagnificationGesture()
@@ -109,6 +117,18 @@ struct EmojiArtDocumentView: View {
             }
             .onEnded { endingDragGestureValue in
                 pan += endingDragGestureValue.translation
+            }
+    }
+    
+    private var emojiPanGesture: some Gesture {
+        DragGesture()
+            .updating($emojiGesturePan) { currentDragGestureValue, emojiGesturePan, _ in
+                emojiGesturePan = currentDragGestureValue.translation
+            }
+            .onEnded { endingDragGestureValue in
+                selectedEmojiIDs.forEach { id in
+                    document.move(emojiWithID: id, by: endingDragGestureValue.translation)
+                }
             }
     }
     
