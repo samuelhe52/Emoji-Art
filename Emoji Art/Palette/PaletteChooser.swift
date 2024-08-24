@@ -30,11 +30,13 @@ struct PaletteChooser: View {
                 store.palettes.remove(at: store.cursorIndex)
             }
         }
+        .font(.title)
     }
     
     func view(for palette: Palette) -> some View {
         HStack {
             Text(palette.name)
+                .font(.title)
             ScrollingEmojis(palette.emojis)
         }
         .id(palette.id)

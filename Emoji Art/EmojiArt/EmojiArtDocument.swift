@@ -21,6 +21,32 @@ class EmojiArtDocument: ObservableObject {
     func addEmoji(_ emoji: String, size: CGFloat, at position: Emoji.Position) {
         emojiArt.addEmoji(emoji, size: Int(size), at: position)
     }
+    
+    // The offset must be "unscaled" before being passed in, fix that later
+    func move(_ emoji: Emoji, by offset: CGOffset) {
+        let existingPosition = emojiArt[emoji].position
+        emojiArt[emoji].position = Emoji.Position(
+            x: existingPosition.x + Int(offset.width),
+            y: existingPosition.y - Int(offset.height)
+        )
+    }
+    
+    // The offset must be "unscaled" before being passed in, fix that later
+    func move(emojiWithID id: Emoji.ID, by offset: CGOffset) {
+        if let emoji = emojiArt[id] {
+            move(emoji, by: offset)
+        }
+    }
+    
+    func resize(_ emoji: Emoji, by scale: CGFloat) {
+        emojiArt[emoji].size = Int(CGFloat(emojiArt[emoji].size) * scale)
+    }
+    
+    func resize(emojiWithID id: Emoji.ID, by scale: CGFloat) {
+        if let emoji = emojiArt[id] {
+            resize(emoji, by: scale)
+        }
+    }
 }
 
 extension Emoji {
