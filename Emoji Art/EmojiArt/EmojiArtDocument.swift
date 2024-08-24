@@ -22,7 +22,6 @@ class EmojiArtDocument: ObservableObject {
         emojiArt.addEmoji(emoji, size: Int(size), at: position)
     }
     
-    // The offset must be "unscaled" before being passed in, fix that later
     func move(_ emoji: Emoji, by offset: CGOffset) {
         let existingPosition = emojiArt[emoji].position
         emojiArt[emoji].position = Emoji.Position(
@@ -31,7 +30,6 @@ class EmojiArtDocument: ObservableObject {
         )
     }
     
-    // The offset must be "unscaled" before being passed in, fix that later
     func move(emojiWithID id: Emoji.ID, by offset: CGOffset) {
         if let emoji = emojiArt[id] {
             move(emoji, by: offset)

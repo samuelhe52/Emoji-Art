@@ -53,7 +53,7 @@ struct EmojiArt {
     }
 }
 
-struct Emoji: Identifiable {
+struct Emoji: Identifiable, Hashable {
     /// An emoji as a `String` instance.
     let string: String
     /// The conceptual size of the emoji.
@@ -73,7 +73,7 @@ struct Emoji: Identifiable {
         self.id = id
     }
     
-    struct Position: Equatable {
+    struct Position: Equatable, Hashable {
         let x: Int
         let y: Int
         

@@ -9,12 +9,11 @@ import SwiftUI
 
 struct EmojiArtDocumentView: View {
     @ObservedObject var document: EmojiArtDocument
+    @State private var selectedEmojiIDs = Set<Emoji.ID>()
     
     struct Constants {
         static let paletteEmojiSize: CGFloat = 40
     }
-    
-    private let emojis = "👻🍎😃🤪☹️🤯🐶🐭🦁🐵🦆🐝🐢🐄🐖🌲🌴🌵🍄🌞🌎🔥🌈🌧️🌨️☁️⛄️⛳️🚗🚙🚓🚲🛺🏍️🚘✈️🛩️🚀🚁🏰🏠❤️💤⛵️"
     
     var body: some View {
         VStack(spacing: 0) {
@@ -43,27 +42,63 @@ struct EmojiArtDocumentView: View {
     @ViewBuilder
     private func documentContent(in geometry: GeometryProxy) -> some View {
         AsyncImage(url: document.background)
+            .onTapGesture {
+                if !selectedEmojiIDs.isEmpty {
+                    deselectAll()
+                }
+            }
             .position(Emoji.Position.zero.in(geometry))
         ForEach(document.emojis) { emoji in
             Text(emoji.string)
+                .onTapGesture {
+                    if isSelected(emoji) {
+                        selectedEmojiIDs.remove(emoji.id)
+                    } else {
+                        selectedEmojiIDs.insert(emoji.id)
+                    }
+                }
+                .border(isSelected(emoji) ? Color.red : Color.clear)
                 .font(emoji.font)
+                .scaleEffect(isSelected(emoji) ? emojiGestureZoom : 1)
                 .position(emoji.position.in(geometry))
         }
+    }
+    
+    private func isSelected(_ emoji: Emoji) -> Bool {
+        return selectedEmojiIDs.contains(emoji.id)
+    }
+    
+    private func deselectAll() {
+        selectedEmojiIDs.removeAll()
     }
     
     @State private var zoom: CGFloat = 1
     @State private var pan: CGOffset = .zero
     
     @GestureState private var gestureZoom: CGFloat = 1
+    @GestureState private var emojiGestureZoom: CGFloat = 1
     @GestureState private var gesturePan: CGOffset = .zero
     
     private var zoomGesture: some Gesture {
         MagnificationGesture()
             .updating($gestureZoom) { currentPinchScale, gestureZoom, _ in
-                gestureZoom = currentPinchScale
+                if selectedEmojiIDs.isEmpty {
+                    gestureZoom = currentPinchScale
+                }
+            }
+            .updating($emojiGestureZoom) { currentPinchScale, emojiGestureZoom, _ in
+                if !selectedEmojiIDs.isEmpty {
+                    emojiGestureZoom = currentPinchScale
+                }
             }
             .onEnded { endingPinchScale in
-                zoom *= endingPinchScale
+                if selectedEmojiIDs.isEmpty {
+                    zoom *= endingPinchScale
+                } else {
+                    selectedEmojiIDs.forEach { id in
+                        document.resize(emojiWithID: id, by: endingPinchScale)
+                    }
+                }
             }
     }
     
