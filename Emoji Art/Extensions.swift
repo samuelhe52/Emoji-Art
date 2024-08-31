@@ -18,6 +18,14 @@ extension CGOffset {
     static func +=(lhs: inout CGOffset, rhs: CGOffset) {
         lhs = lhs + rhs
     }
+    
+    static func /(lhs: CGOffset, rhs: CGFloat) -> CGOffset {
+        CGOffset(width: lhs.width / rhs, height: lhs.height / rhs)
+    }
+    
+    static func *(lhs: CGOffset, rhs: CGFloat) -> CGOffset {
+        CGOffset(width: lhs.width * rhs, height: lhs.height * rhs)
+    }
 }
 
 extension CGRect {

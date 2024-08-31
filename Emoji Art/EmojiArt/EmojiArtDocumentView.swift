@@ -36,8 +36,8 @@ struct EmojiArtDocumentView: View {
             ZStack {
                 Color.white
                 documentContent(in: geometry)
-                    .scaleEffect(zoom * backgroundGestureZoom)
-                    .offset(pan + backgroundGesturePan)
+                    .scaleEffect(zoom * gestureZoom)
+                    .offset(pan + gesturePan)
             }
             .gesture(panGesture.simultaneously(with: zoomGesture))
             .dropDestination(for: Sturldata.self) { sturldatas, location in
@@ -84,22 +84,24 @@ struct EmojiArtDocumentView: View {
     }
     
     // MARK: Emoji
+    @ViewBuilder
     private func buildEmoji(_ emoji: Emoji, in geometry: GeometryProxy) -> some View {
+        let selected = isSelected(emoji)
         Text(emoji.string)
             .onTapGesture {
-                if isSelected(emoji) {
+                if selected {
                     selectedEmojiIDs.remove(emoji.id)
                 } else {
                     selectedEmojiIDs.insert(emoji.id)
                 }
             }
-            .border(isSelected(emoji) ? Color.red : Color.clear)
+            .border(selected ? Color.red : Color.clear)
             .font(emoji.font)
-            .scaleEffect(isSelected(emoji) ? emojiGestureZoom : 1)
+            .scaleEffect(selected ? emojiGestureZoom : 1)
             .position(emoji.position.in(geometry))
-            .offset(isSelected(emoji) ? emojiGesturePan: .zero)
+            .offset(emojiGesturePan.pan(for: emoji, selected: selected))
             // Note: Our .gesture() modifier must be placed after any position-shifting modifiers.
-            .gesture(panGesture)
+            .gesture(emojiPanGesture(draggingUnselectedEmojiID: selected ? nil : emoji.id))
     }
     
     private func isSelected(_ emoji: Emoji) -> Bool {
@@ -114,17 +116,35 @@ struct EmojiArtDocumentView: View {
     @State private var zoom: CGFloat = 1
     @State private var pan: CGOffset = .zero
     
-    @GestureState private var backgroundGestureZoom: CGFloat = 1
+    @GestureState private var gestureZoom: CGFloat = 1
     @GestureState private var emojiGestureZoom: CGFloat = 1
-    @GestureState private var backgroundGesturePan: CGOffset = .zero
-    @GestureState private var emojiGesturePan: CGOffset = .zero
+    @GestureState private var gesturePan: CGOffset = .zero
+    @GestureState private var emojiGesturePan: EmojiGesturePan = .init(pan: .zero, panScope: .allSelected)
     
+    private struct EmojiGesturePan {
+        let pan: CGOffset
+        let panScope: PanScope
+        
+        enum PanScope {
+            case allSelected
+            case single(Emoji.ID)
+        }
+        
+        /// Determines the current pan for a specific emoji.
+        func pan(for emoji: Emoji, selected: Bool) -> CGOffset {
+            switch panScope {
+            case .allSelected:
+                return selected ? pan : .zero
+            case .single(let id):
+                return id == emoji.id ? pan : .zero
+            }
+        }
+    }
     // MARK: - Gestures
-    private var gesturingOnBackground: Bool { selectedEmojiIDs.isEmpty }
-
     private var zoomGesture: some Gesture {
-        MagnificationGesture()
-            .updating($backgroundGestureZoom) { currentPinchScale, gestureZoom, _ in
+        let gesturingOnBackground: Bool = selectedEmojiIDs.isEmpty
+        return MagnificationGesture()
+            .updating($gestureZoom) { currentPinchScale, gestureZoom, _ in
                 if gesturingOnBackground {
                     gestureZoom = currentPinchScale
                 }
@@ -145,21 +165,50 @@ struct EmojiArtDocumentView: View {
             }
     }
     
+    // MARK: Pan
+    // This gesture should be used when user is dragging on the background
     private var panGesture: some Gesture {
         DragGesture()
-            .updating($backgroundGesturePan) { currentDragGestureValue, gesturePan, _ in
-                if gesturingOnBackground {
+            .updating($gesturePan) { currentDragGestureValue, gesturePan, _ in
+                if selectedEmojiIDs.isEmpty {
                     gesturePan = currentDragGestureValue.translation
                 }
             }
             .updating($emojiGesturePan) { currentDragGestureValue, emojiGesturePan, _ in
-                if !gesturingOnBackground {
-                    emojiGesturePan = currentDragGestureValue.translation
+                if !selectedEmojiIDs.isEmpty {
+                    emojiGesturePan = .init(pan: currentDragGestureValue.translation / zoom,
+                                            panScope: .allSelected)
                 }
             }
             .onEnded { endingDragGestureValue in
-                if gesturingOnBackground {
+                if selectedEmojiIDs.isEmpty {
                     pan += endingDragGestureValue.translation
+                } else {
+                    selectedEmojiIDs.forEach { id in
+                        document.move(emojiWithID: id, by: endingDragGestureValue.translation / zoom)
+                    }
+                }
+            }
+    }
+    
+    // This should be used when the user is dragging on a specific emoji
+    /// - Parameters:
+    ///     - draggingUnselectedEmojiID: indicates if the user is dragging on an unselected emoji;
+    ///      If so, we move that emoji without selecting it. The background would not be moved in this case.
+    private func emojiPanGesture(draggingUnselectedEmojiID: Emoji.ID? = nil) -> some Gesture {
+        DragGesture()
+            .updating($emojiGesturePan) { currentDragGestureValue, emojiGesturePan, _ in
+                if let id = draggingUnselectedEmojiID {
+                    emojiGesturePan = .init(pan: currentDragGestureValue.translation,
+                                            panScope: .single(id))
+                } else {
+                    emojiGesturePan = .init(pan: currentDragGestureValue.translation,
+                                            panScope: .allSelected)
+                }
+            }
+            .onEnded { endingDragGestureValue in
+                if let id = draggingUnselectedEmojiID {
+                    document.move(emojiWithID: id, by: endingDragGestureValue.translation)
                 } else {
                     selectedEmojiIDs.forEach { id in
                         document.move(emojiWithID: id, by: endingDragGestureValue.translation)
@@ -173,6 +222,7 @@ struct EmojiArtDocumentView: View {
     private var trashBin: some View {
         Button {
             document.remove(emojisWithIDs: selectedEmojiIDs)
+            selectedEmojiIDs.removeAll()
         } label: {
             Image(systemName: "trash")
                 .font(.title)
