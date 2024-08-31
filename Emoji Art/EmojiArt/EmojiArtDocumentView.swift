@@ -36,8 +36,8 @@ struct EmojiArtDocumentView: View {
             ZStack {
                 Color.white
                 documentContent(in: geometry)
-                    .scaleEffect(zoom * gestureZoom)
-                    .offset(pan + gesturePan)
+                    .scaleEffect(zoom * backgroundGestureZoom)
+                    .offset(pan + backgroundGesturePan)
             }
             .gesture(panGesture.simultaneously(with: zoomGesture))
             .dropDestination(for: Sturldata.self) { sturldatas, location in
@@ -99,7 +99,7 @@ struct EmojiArtDocumentView: View {
             .position(emoji.position.in(geometry))
             .offset(isSelected(emoji) ? emojiGesturePan: .zero)
             // Note: Our .gesture() modifier must be placed after any position-shifting modifiers.
-            .gesture(emojiPanGesture)
+            .gesture(panGesture)
     }
     
     private func isSelected(_ emoji: Emoji) -> Bool {
@@ -114,26 +114,28 @@ struct EmojiArtDocumentView: View {
     @State private var zoom: CGFloat = 1
     @State private var pan: CGOffset = .zero
     
-    @GestureState private var gestureZoom: CGFloat = 1
+    @GestureState private var backgroundGestureZoom: CGFloat = 1
     @GestureState private var emojiGestureZoom: CGFloat = 1
-    @GestureState private var gesturePan: CGOffset = .zero
+    @GestureState private var backgroundGesturePan: CGOffset = .zero
     @GestureState private var emojiGesturePan: CGOffset = .zero
     
     // MARK: - Gestures
+    private var gesturingOnBackground: Bool { selectedEmojiIDs.isEmpty }
+
     private var zoomGesture: some Gesture {
         MagnificationGesture()
-            .updating($gestureZoom) { currentPinchScale, gestureZoom, _ in
-                if selectedEmojiIDs.isEmpty {
+            .updating($backgroundGestureZoom) { currentPinchScale, gestureZoom, _ in
+                if gesturingOnBackground {
                     gestureZoom = currentPinchScale
                 }
             }
             .updating($emojiGestureZoom) { currentPinchScale, emojiGestureZoom, _ in
-                if !selectedEmojiIDs.isEmpty {
+                if !gesturingOnBackground {
                     emojiGestureZoom = currentPinchScale
                 }
             }
             .onEnded { endingPinchScale in
-                if selectedEmojiIDs.isEmpty {
+                if gesturingOnBackground {
                     zoom *= endingPinchScale
                 } else {
                     selectedEmojiIDs.forEach { id in
@@ -145,22 +147,23 @@ struct EmojiArtDocumentView: View {
     
     private var panGesture: some Gesture {
         DragGesture()
-            .updating($gesturePan) { currentDragGestureValue, gesturePan, _ in
-                gesturePan = currentDragGestureValue.translation
+            .updating($backgroundGesturePan) { currentDragGestureValue, gesturePan, _ in
+                if gesturingOnBackground {
+                    gesturePan = currentDragGestureValue.translation
+                }
             }
-            .onEnded { endingDragGestureValue in
-                pan += endingDragGestureValue.translation
-            }
-    }
-    
-    private var emojiPanGesture: some Gesture {
-        DragGesture()
             .updating($emojiGesturePan) { currentDragGestureValue, emojiGesturePan, _ in
-                emojiGesturePan = currentDragGestureValue.translation
+                if !gesturingOnBackground {
+                    emojiGesturePan = currentDragGestureValue.translation
+                }
             }
             .onEnded { endingDragGestureValue in
-                selectedEmojiIDs.forEach { id in
-                    document.move(emojiWithID: id, by: endingDragGestureValue.translation)
+                if gesturingOnBackground {
+                    pan += endingDragGestureValue.translation
+                } else {
+                    selectedEmojiIDs.forEach { id in
+                        document.move(emojiWithID: id, by: endingDragGestureValue.translation)
+                    }
                 }
             }
     }
