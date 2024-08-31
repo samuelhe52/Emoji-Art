@@ -11,19 +11,26 @@ struct EmojiArtDocumentView: View {
     @ObservedObject var document: EmojiArtDocument
     @State private var selectedEmojiIDs = Set<Emoji.ID>()
     
+    // MARK: - Constants
     struct Constants {
         static let paletteEmojiSize: CGFloat = 40
     }
     
+    // MARK: - Body
     var body: some View {
         VStack(spacing: 0) {
             documentBody
-            PaletteChooser()
-                .font(.system(size: Constants.paletteEmojiSize))
-                .padding(.horizontal)
+            HStack {
+                PaletteChooser()
+                    .font(.system(size: Constants.paletteEmojiSize))
+                    .padding(.horizontal)
+                trashBin
+                    .padding(.trailing)
+            }
         }
     }
     
+    // MARK: Document Body
     private var documentBody: some View {
         GeometryReader { geometry in
             ZStack {
@@ -39,6 +46,29 @@ struct EmojiArtDocumentView: View {
         }
     }
     
+    private func drop(_ sturldatas: [Sturldata],
+                      at location: CGPoint,
+                      in geometry: GeometryProxy) -> Bool {
+        for sturldata in sturldatas {
+            switch sturldata {
+            case .url(let url):
+                document.setBackground(url)
+                return true
+            case .string(let string):
+                document.addEmoji(
+                    string,
+                    size: Constants.paletteEmojiSize,
+                    at: .init(at: location, in: geometry, pan: pan, zoom: zoom)
+                )
+                return true
+            default:
+                break
+            }
+        }
+        return false
+    }
+    
+    // MARK: Document Content
     @ViewBuilder
     private func documentContent(in geometry: GeometryProxy) -> some View {
         AsyncImage(url: document.background)
@@ -53,6 +83,7 @@ struct EmojiArtDocumentView: View {
         }
     }
     
+    // MARK: Emoji
     private func buildEmoji(_ emoji: Emoji, in geometry: GeometryProxy) -> some View {
         Text(emoji.string)
             .onTapGesture {
@@ -68,7 +99,7 @@ struct EmojiArtDocumentView: View {
             .position(emoji.position.in(geometry))
             .offset(isSelected(emoji) ? emojiGesturePan: .zero)
             // Note: Our .gesture() modifier must be placed after any position-shifting modifiers.
-            .gesture(isSelected(emoji) ? emojiPanGesture : nil)
+            .gesture(emojiPanGesture)
     }
     
     private func isSelected(_ emoji: Emoji) -> Bool {
@@ -79,6 +110,7 @@ struct EmojiArtDocumentView: View {
         selectedEmojiIDs.removeAll()
     }
     
+    // MARK: - Zoom and pan
     @State private var zoom: CGFloat = 1
     @State private var pan: CGOffset = .zero
     
@@ -87,6 +119,7 @@ struct EmojiArtDocumentView: View {
     @GestureState private var gesturePan: CGOffset = .zero
     @GestureState private var emojiGesturePan: CGOffset = .zero
     
+    // MARK: - Gestures
     private var zoomGesture: some Gesture {
         MagnificationGesture()
             .updating($gestureZoom) { currentPinchScale, gestureZoom, _ in
@@ -132,26 +165,16 @@ struct EmojiArtDocumentView: View {
             }
     }
     
-    private func drop(_ sturldatas: [Sturldata],
-                      at location: CGPoint,
-                      in geometry: GeometryProxy) -> Bool {
-        for sturldata in sturldatas {
-            switch sturldata {
-            case .url(let url):
-                document.setBackground(url)
-                return true
-            case .string(let string):
-                document.addEmoji(
-                    string,
-                    size: Constants.paletteEmojiSize,
-                    at: .init(at: location, in: geometry, pan: pan, zoom: zoom)
-                )
-                return true
-            default:
-                break
-            }
+    // MARK: - Trash Bin
+    // TODO: Use Drag and Drop to delete emojis
+    private var trashBin: some View {
+        Button {
+            document.remove(emojisWithIDs: selectedEmojiIDs)
+        } label: {
+            Image(systemName: "trash")
+                .font(.title)
+                .foregroundStyle(.red)
         }
-        return false
     }
 }
 

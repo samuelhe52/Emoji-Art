@@ -44,8 +44,8 @@ enum Sturldata: Transferable {
     }
 
     static var transferRepresentation: some TransferRepresentation {
-        ProxyRepresentation { Sturldata(string: $0) }
-        ProxyRepresentation { Sturldata(url: $0) }
+        ProxyRepresentation { Sturldata.string($0) }
+        ProxyRepresentation { Sturldata.url($0) }
         ProxyRepresentation { Sturldata.data($0) }
     }
 }

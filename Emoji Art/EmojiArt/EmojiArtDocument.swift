@@ -45,6 +45,15 @@ class EmojiArtDocument: ObservableObject {
             resize(emoji, by: scale)
         }
     }
+    
+    func remove(_ emojis: Set<Emoji>) {
+        let ids = Set(emojis.map { $0.id })
+        remove(emojisWithIDs: ids)
+    }
+    
+    func remove(emojisWithIDs ids: Set<Emoji.ID>) {
+        emojiArt.emojis.removeAll(where: { ids.contains($0.id) })
+    }
 }
 
 extension Emoji {
