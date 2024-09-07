@@ -34,7 +34,7 @@ struct EmojiArtDocumentView: View {
     private var documentBody: some View {
         GeometryReader { geometry in
             ZStack {
-                Color.white
+                Color.clear
                 documentContent(in: geometry)
                     .scaleEffect(zoom * gestureZoom)
                     .offset(pan + gesturePan)
