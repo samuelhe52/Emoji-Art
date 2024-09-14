@@ -9,6 +9,7 @@ import SwiftUI
 
 struct PaletteChooser: View {
     @EnvironmentObject var store: PaletteStore
+    @State private var showPaletteEditor: Bool = false
     
     var body: some View {
         HStack {
@@ -16,6 +17,10 @@ struct PaletteChooser: View {
             view(for: store.palettes[store.cursorIndex])
         }
         .clipped()
+        .sheet(isPresented: $showPaletteEditor) {
+            PaletteEditor(palette: $store.palettes[store.cursorIndex])
+                .font(nil)
+        }
     }
     
     var chooser: some View {
@@ -23,14 +28,36 @@ struct PaletteChooser: View {
             store.cursorIndex += 1
         }
         .contextMenu {
+            gotoMenu
             AnimatedActionButton("New", systemImage: "plus") {
-                store.insert(name: "Math", emojis: "+−×÷±=∞∩∪")
+                store.insert(name: "", emojis: "")
+                showPaletteEditor = true
+            }
+            AnimatedActionButton("Edit", systemImage: "pencil") {
+                showPaletteEditor = true
             }
             AnimatedActionButton("Delete", systemImage: "minus.circle", role: .destructive) {
                 store.palettes.remove(at: store.cursorIndex)
             }
+            AnimatedActionButton("Restore All", systemImage: "arrow.trianglehead.clockwise.rotate.90", role: .destructive) {
+                store.palettes = Palette.builtins
+            }
         }
         .font(.title)
+    }
+    
+    private var gotoMenu: some View {
+        Menu {
+            ForEach(store.palettes) { palette in
+                AnimatedActionButton(palette.name) {
+                    if let index = store.palettes.firstIndex(where: { $0.id == palette.id }) {
+                        store.cursorIndex = index
+                    }
+                }
+            }
+        } label: {
+            Label("Go To", systemImage: "text.insert")
+        }
     }
     
     func view(for palette: Palette) -> some View {

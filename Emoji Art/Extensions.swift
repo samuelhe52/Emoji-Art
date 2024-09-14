@@ -48,6 +48,18 @@ extension Array where Element: Hashable {
     }
 }
 
+extension String {
+    func removingDuplicates() -> String {
+        Array(self).map(String.init).removingDuplicates().joined()
+    }
+    
+    mutating func remove(_ character: Character) {
+        if let index = firstIndex(of: character) {
+            remove(at: index)
+        }
+    }
+}
+
 struct AnimatedActionButton: View {
     var title: String? = nil
     var systemImage: String? = nil

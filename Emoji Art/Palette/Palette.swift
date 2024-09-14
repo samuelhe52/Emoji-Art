@@ -12,6 +12,8 @@ struct Palette: Identifiable, Codable {
     var emojis: String
     var id = UUID()
     
+    var emojiArray: [Character] { Array(emojis) }
+    
     static var builtins: [Palette] {
         [
             Palette(name: "Vehicles", emojis: "🚙🚗🚘🚕🚖🏎🚚🛻🚛🚐🚓🚔🚑🚒🚀✈️🛫🛬🛩🚁🛸🚲🏍🛶⛵️🚤🛥🛳⛴🚢🚂🚝🚅🚆🚊🚉🚇🛺🚜"),
