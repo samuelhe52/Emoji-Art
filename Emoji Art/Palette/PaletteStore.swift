@@ -23,8 +23,9 @@ extension UserDefaults {
     }
 }
 
-class PaletteStore: ObservableObject {
+class PaletteStore: ObservableObject, Identifiable {
     let name: String
+    var id: String { name }
     
     private var userDefaultsKey: String { "PalettesStore: \(name)" }
     
@@ -98,5 +99,15 @@ class PaletteStore: ObservableObject {
     
     func append(name: String, emojis: String) {
         append(Palette(name: name, emojis: emojis))
+    }
+}
+
+extension PaletteStore: Hashable {
+    static func == (lhs: PaletteStore, rhs: PaletteStore) -> Bool {
+        lhs.name == rhs.name
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(name)
     }
 }
