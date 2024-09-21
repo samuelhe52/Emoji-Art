@@ -11,6 +11,11 @@ class EmojiArtDocument: ObservableObject {
     @Published private var emojiArt = EmojiArt() {
         didSet {
             autosave()
+            if emojiArt.background != oldValue.background {
+                Task {
+                    await fetchBackgroundImage()
+                }
+            }
         }
     }
     
@@ -38,7 +43,82 @@ class EmojiArtDocument: ObservableObject {
     }
     
     var emojis: [Emoji] { emojiArt.emojis }
-    var background: URL? { emojiArt.background }
+    
+    var bbox: CGRect {
+        emojiArt.emojis
+            .reduce(CGRect.zero) { $0.union($1.bbox) }
+            .union(CGRect(center: .zero, size: background.uiImage?.size ?? .zero))
+    }
+    
+    @Published var background: Background = .none
+    
+    // MARK: - Background Image
+    
+    @MainActor
+    private func fetchBackgroundImage() async {
+        if let url = emojiArt.background {
+            background = .fetching(url)
+            do {
+                let image = try await fetchUIImage(from: url)
+                if url == emojiArt.background {
+                    background = .found(image)
+                }
+            } catch {
+                background = .failed(error)
+            }
+        } else {
+            background = .none
+        }
+    }
+    
+    private func fetchUIImage(from url: URL) async throws -> UIImage {
+        let (data, _) = try await URLSession.shared.data(from: url)
+        if let uiImage = UIImage(data: data) {
+            return uiImage
+        } else {
+            throw BackgroundFetchError.urlDoesNotContainImage
+        }
+    }
+    
+    enum Background {
+        case none
+        case fetching(URL)
+        case found(UIImage)
+        case failed(Error)
+        
+        var uiImage: UIImage? {
+            switch self {
+            case .found(let uiImage): return uiImage
+            default: return nil
+            }
+        }
+        
+        var urlBeingFetched: URL? {
+            switch self {
+            case .fetching(let url): return url
+            default: return nil
+            }
+        }
+        
+        var isFetching: Bool { urlBeingFetched != nil }
+        
+        var failureReason: String? {
+            switch self {
+            case .failed(let reason): return reason.localizedDescription
+            default: return nil
+            }
+        }
+    }
+    
+    enum BackgroundFetchError: Error {
+        case urlDoesNotContainImage
+        
+        var description: String {
+            switch self {
+            case .urlDoesNotContainImage: return "URL doesn't contain an image."
+            }
+        }
+    }
     
     // MARK: - Intents
     func setBackground(_ url: URL?) {
@@ -87,12 +167,18 @@ extension Emoji {
     var font: Font {
         Font.system(size: CGFloat(size))
     }
+    var bbox: CGRect {
+        CGRect(
+            center: position.in(nil),
+            size: CGSize(width: CGFloat(size), height: CGFloat(size))
+        )
+    }
 }
 
 extension Emoji.Position {
     /// - Returns: The corresponding `CGPoint` in SwiftUI's default coordinate system.
-    func `in`(_ geometry: GeometryProxy) -> CGPoint {
-        let center = geometry.frame(in: .local).center
+    func `in`(_ geometry: GeometryProxy?) -> CGPoint {
+        let center = geometry?.frame(in: .local).center ?? .zero
         // We use minus sign for y coordinate to make this a Cartesian coordinate system.
         return CGPoint(x: center.x + CGFloat(x), y: center.y - CGFloat(y))
     }
@@ -103,10 +189,10 @@ extension Emoji.Position {
     ///   - location: A `CGPoint` representing the location in the `GeometryProxy`'s coordinate space.
     ///   - geometry: A `GeometryProxy` object that provides access to the frame of the view.
     init(at location: CGPoint,
-         in geometry: GeometryProxy,
+         in geometry: GeometryProxy?,
          pan: CGOffset = .zero,
          zoom: CGFloat = 1) {
-        let center = geometry.frame(in: .local).center
+        let center = geometry?.frame(in: .local).center ?? .zero
         self.init(
             x: Int((location.x - center.x - pan.width) / zoom),
             y: Int((-(location.y - center.y - pan.height)) / zoom)
