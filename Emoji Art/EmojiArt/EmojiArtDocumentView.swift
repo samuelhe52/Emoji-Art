@@ -47,9 +47,13 @@ struct EmojiArtDocumentView: View {
                     .scaleEffect(zoom * gestureZoom)
                     .offset(pan + gesturePan)
             }
+            .contentShape(Rectangle())
             .gesture(panGesture.simultaneously(with: zoomGesture))
             .onTapGesture(count: 2) {
                 zoomToFit(document.bbox, in: geometry)
+            }
+            .onTapGesture {
+                deselectAll()
             }
             .dropDestination(for: Sturldata.self) { sturldatas, location in
                 return drop(sturldatas, at: location, in: geometry)

@@ -43,14 +43,14 @@ struct PaletteChooser: View {
             AnimatedActionButton("Edit", systemImage: "pencil") {
                 showPaletteEditor = true
             }
+            AnimatedActionButton("List", systemImage: "list.bullet.rectangle.portrait") {
+                showPaletteList = true
+            }
             AnimatedActionButton("Delete", systemImage: "minus.circle", role: .destructive) {
                 store.palettes.remove(at: store.cursorIndex)
             }
             AnimatedActionButton("Restore All", systemImage: "arrow.trianglehead.clockwise.rotate.90", role: .destructive) {
                 store.palettes = Palette.builtins
-            }
-            AnimatedActionButton("List", systemImage: "list.bullet.rectangle.portrait") {
-                showPaletteList = true
             }
         }
         .font(.title)

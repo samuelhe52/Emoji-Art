@@ -28,6 +28,7 @@ struct EditablePaletteList: View {
         .navigationDestination(for: Palette.ID.self) { paletteID in
             if let index = store.palettes.firstIndex(where: { $0.id == paletteID }) {
                 PaletteEditor(palette: $store.palettes[index])
+                    .font(nil)
                     .id(paletteID)
                 // .id() ensures that the Editoe be recreated upon change of palette,
                 // which ensures that the originalEmojis will be properly updated.
@@ -35,6 +36,7 @@ struct EditablePaletteList: View {
         }
         .navigationDestination(isPresented: $showCursorPalette) {
             PaletteEditor(palette: $store.palettes[store.cursorIndex])
+                .font(nil)
                 .id(store.palettes[store.cursorIndex].id)
         }
         .navigationTitle("\(store.name) Palettes")
