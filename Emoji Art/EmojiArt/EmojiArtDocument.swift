@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+@MainActor
 class EmojiArtDocument: ObservableObject {
     @Published private var emojiArt = EmojiArt() {
         didSet {
@@ -54,7 +55,6 @@ class EmojiArtDocument: ObservableObject {
     
     // MARK: - Background Image
     
-    @MainActor
     private func fetchBackgroundImage() async {
         if let url = emojiArt.background {
             background = .fetching(url)
@@ -73,6 +73,7 @@ class EmojiArtDocument: ObservableObject {
     
     private func fetchUIImage(from url: URL) async throws -> UIImage {
         let (data, _) = try await URLSession.shared.data(from: url)
+        try await Task.sleep(nanoseconds: 5_000_000_000)
         if let uiImage = UIImage(data: data) {
             return uiImage
         } else {
