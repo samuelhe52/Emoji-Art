@@ -8,9 +8,11 @@
 import SwiftUI
 
 struct EmojiArtDocumentView: View {
-    @ObservedObject var document: EmojiArtDocument
-    @State private var selectedEmojiIDs = Set<Emoji.ID>()
+    @Environment(\.undoManager) var undoManager
     
+    @ObservedObject var document: EmojiArtDocument
+    @StateObject var paletteStore = PaletteStore(named: "Main")
+    @State private var selectedEmojiIDs = Set<Emoji.ID>()
     @State private var showBackgroundFailureAlert: Bool = false
     
     // MARK: - Constants
@@ -29,6 +31,13 @@ struct EmojiArtDocumentView: View {
                 trashBin
                     .padding(.trailing)
             }
+        }
+        .toolbar {
+            UndoButton()
+        }
+        .environmentObject(paletteStore)
+        .onChange(of: Unmanaged.passUnretained(document).toOpaque()) {
+            document.undoManager = undoManager
         }
     }
     
